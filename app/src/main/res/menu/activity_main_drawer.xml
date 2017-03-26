@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_camera"
+            android:icon="@drawable/ic_map"
+            android:title="แผนที่" />
+        <item
+            android:id="@+id/nav_gallery"
+            android:icon="@drawable/ic_account_circle"
+            android:title="ศูนย์ช่วยเหลือ" />
+
+    </group>
+
+    <item android:title="อื่นๆ">
+        <menu>
+            <item
+                android:id="@+id/nav_share"
+                android:icon="@drawable/ic_menu_share"
+                android:title="แบ่งปันแอพนี้" />
+            <item
+                android:id="@+id/nav_send"
+                android:icon="@drawable/ic_info"
+                android:title="การใช้งาน" />
+        </menu>
+    </item>
+
+</menu>
