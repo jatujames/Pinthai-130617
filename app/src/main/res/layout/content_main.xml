@@ -22,41 +22,167 @@
         android:layout_height="match_parent"
         />
 
+
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_below="@+id/container_toolbar">
+        android:layout_height="wrap_content"
+        android:id="@+id/card_pin"
+        android:visibility="invisible">
 
         <LinearLayout
-            android:id="@+id/locationMarker"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginBottom="30dp"
-            android:gravity="center"
-            android:orientation="vertical" >
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="368dp"
+            android:layout_marginBottom="200dp"
+            android:id="@+id/card_pin_hide">
 
-            <TextView
-                android:id="@+id/locationMarkertext"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:minWidth="250dp"
-                android:paddingLeft="2dp"
-                android:paddingRight="2dp"
-                android:text=" Set your Location "
-                android:textColor="@android:color/white"
-                android:background="@color/cast_expanded_controller_ad_label_background_color" />
-
-            <ImageView
-                android:id="@+id/imageMarker"
-                android:src="@drawable/ic_place"
-                android:layout_width="65dp"
-                android:layout_height="65dp"
-                android:visibility="invisible" />
         </LinearLayout>
 
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/com_facebook_button_login_silver_background_color"
+            android:layout_marginTop="345dp">
 
+            <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?android:attr/colorPrimary"
+                android:paddingLeft="10dp"
+                android:paddingRight="10dp">
+
+                <TextView
+                    android:text="TextView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/card_pin_texttitle"
+                    android:textSize="24sp"
+                    android:textColor="@color/cast_expanded_controller_text_color"
+                    android:textAlignment="textStart" />
+
+                <TextView
+                    android:text="TextView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/card_pin_text1"
+                    android:textSize="18sp"
+                    android:textAlignment="textStart"
+                    android:textColor="@color/cast_expanded_controller_text_color" />
+                <TextView
+                    android:text="TextView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/card_pin_text2"
+                    android:textSize="12sp"
+                    android:textAlignment="textEnd"
+                    android:textColor="@color/cast_expanded_controller_text_color" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+                    <LinearLayout
+                        android:orientation="vertical"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:paddingLeft="10dp"
+                        android:background="@android:color/holo_green_light"
+                        android:paddingRight="10dp">
+
+                        <TextView
+                            android:text="คะแนน"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:id="@+id/textView6"
+                            android:textAlignment="center"
+                            android:textColor="@color/cast_expanded_controller_text_color" />
+
+                        <TextView
+                            android:text="0.0"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:id="@+id/vote_rating_text"
+                            android:layout_weight="1"
+                            android:textAlignment="center"
+                            android:textSize="24sp"
+                            android:gravity="center"
+                            android:textColor="@color/cast_expanded_controller_text_color" />
+
+                        <TextView
+                            android:text="0"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:id="@+id/vote_amount_text"
+                            android:textAlignment="center"
+                            android:textColor="@color/cast_expanded_controller_text_color" />
+
+                        <TextView
+                            android:text="โหวต"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:id="@+id/textView8"
+                            android:textAlignment="center"
+                            android:textColor="@color/cast_expanded_controller_text_color" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:orientation="vertical"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:weightSum="1"
+                        android:paddingTop="5dp">
+
+                        <TextView
+                            android:text="ให้คะแนนความน่าเชื่อถือหมุดนี้"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:id="@+id/textView4"
+                            android:paddingLeft="10dp"
+                            android:textAlignment="center" />
+
+                        <RatingBar
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:clickable="true"
+                            android:numStars="5"
+                            android:id="@+id/ratingBar"
+                            android:isIndicator="false"
+                            android:layout_gravity="center"
+                            android:foregroundGravity="center"
+                            android:layout_marginLeft="10dp"
+                            android:minHeight="28dp"
+                            android:stepSize="1"/>
+
+                        <Button
+                            android:text="ส่ง"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:id="@+id/rating_button"
+                            android:background="@color/colorPrimary"
+                            android:textColor="@color/cast_libraries_material_featurehighlight_text_header_color"
+                            android:layout_weight="0.18"
+                            android:minHeight="0dp"
+                            android:minWidth="48dip"
+                            android:gravity="center"
+                            android:layout_marginTop="10dp"
+                            android:layout_gravity="center" />
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </LinearLayout>
 
     </FrameLayout>
 
@@ -87,37 +213,17 @@
                 <TextView android:gravity="center_vertical"
                     android:id="@+id/Locality"
                     android:layout_height="wrap_content"
-                    android:drawableLeft="@drawable/ic_gps_fixed"
+                    android:drawableLeft="@drawable/ic_search_black_24dp"
                     android:drawablePadding="@dimen/list_row_padding"
                     android:ellipsize="end"
                     android:padding="10dp"
                     android:singleLine="true"
-                    android:text="Click to change location"
+                    android:text="ค้นหาสถานที่ ที่นี่"
+                    android:background="@color/cast_expanded_controller_text_color"
                     android:textSize="@dimen/font_22"
-                    android:layout_weight="1"
                     android:layout_width="match_parent" />
+
             </LinearLayout>
-
-            <LinearLayout
-                android:orientation="horizontal"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent">
-
-                <Button
-                    android:text="Button1"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:id="@+id/addpin_gmap"
-                    android:layout_weight="1" />
-
-                <Button
-                    android:text="Button2"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:id="@+id/addpin_here_gmap"
-                    android:layout_weight="1" />
-            </LinearLayout>
-
         </LinearLayout>
     </LinearLayout>
 

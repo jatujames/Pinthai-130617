@@ -5,23 +5,23 @@
     <group android:checkableBehavior="single">
         <item
             android:id="@+id/nav_camera"
-            android:icon="@drawable/ic_map"
-            android:title="แผนที่" />
+            android:icon="@drawable/ic_history"
+            android:title="ประวัติการเพิ่ม" />
         <item
-            android:id="@+id/nav_gallery"
+            android:id="@+id/nav_helpcenter"
             android:icon="@drawable/ic_account_circle"
             android:title="ศูนย์ช่วยเหลือ" />
+        <item
+            android:id="@+id/nav_troubleshooting"
+            android:icon="@drawable/ic_build"
+            android:title="การแก้ไขเบื้องต้น" />
 
     </group>
 
     <item android:title="อื่นๆ">
         <menu>
             <item
-                android:id="@+id/nav_share"
-                android:icon="@drawable/ic_menu_share"
-                android:title="แบ่งปันแอพนี้" />
-            <item
-                android:id="@+id/nav_send"
+                android:id="@+id/nav_info"
                 android:icon="@drawable/ic_info"
                 android:title="การใช้งาน" />
         </menu>

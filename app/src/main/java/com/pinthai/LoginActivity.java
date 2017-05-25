@@ -11,9 +11,13 @@ import com.facebook.FacebookCallback;
 import com.facebook.FacebookException;
 import com.facebook.GraphRequest;
 import com.facebook.GraphResponse;
+import com.facebook.Profile;
 import com.facebook.login.LoginManager;
 import com.facebook.login.LoginResult;
 import com.facebook.login.widget.LoginButton;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.pinthai.wrapper.FacebookProfile;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -38,6 +42,7 @@ public class LoginActivity extends AppCompatActivity {
         loginButton.setReadPermissions("public_profile");
         loginButton.setReadPermissions("user_friends");
         LoginManager.getInstance().logInWithReadPermissions(this, Arrays.asList("email","user_photos","public_profile"));
+       // Profile.getCurrentProfile().getId();
 
 
 
@@ -73,7 +78,6 @@ public class LoginActivity extends AppCompatActivity {
                                         String str_id = json.getString("id");
                                         String str_firstname = json.getString("first_name");
                                         String str_lastname = json.getString("last_name");
-
                                     } catch (JSONException e) {
                                         e.printStackTrace();
                                     }
@@ -109,6 +113,7 @@ public class LoginActivity extends AppCompatActivity {
                     public void onCompleted(JSONObject json_object, GraphResponse response) {
                         Intent intent = new Intent(LoginActivity.this,MainActivity.class);
                         intent.putExtra("jsondata",json_object.toString());
+
                         startActivity(intent);
                     }
                 });

@@ -10,28 +10,26 @@ import android.location.Location;
 import android.os.Handler;
 import android.os.ResultReceiver;
 import android.provider.Settings;
-import android.support.annotation.NonNull;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.NavigationView;
-import android.support.design.widget.Snackbar;
+
 import android.support.v4.app.ActivityCompat;
 import android.os.Bundle;
 
-import android.support.v4.view.GravityCompat;
-import android.support.v4.widget.DrawerLayout;
-import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.view.LayoutInflater;
+
+import android.view.ContextMenu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.firebase.geofire.GeoFire;
+import com.firebase.geofire.GeoLocation;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
@@ -51,12 +49,23 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.firebase.database.ChildEventListener;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.pinthai.fragment.AppUtils;
-import com.squareup.picasso.Picasso;
+import com.pinthai.wrapper.DBDetails;
+import com.pinthai.wrapper.FacebookProfile;
+import com.pinthai.wrapper.PostDBFirebase;
 
-import org.json.JSONObject;
+import java.text.DateFormat;
+import java.util.Date;
+import java.util.Map;
 
-public class MapActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener, NavigationView.OnNavigationItemSelectedListener {
+public class MapActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener {
 
     private GoogleMap mMap;
     private GoogleApiClient mGoogleApiClient;
@@ -65,30 +74,27 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     Context mContext;
     TextView mLocationMarkerText;
     private LatLng mCenterLatLong;
-
     private AddressResultReceiver mResultReceiver;
-
     protected String mAddressOutput;
     protected String mAreaOutput;
     protected String mCityOutput;
     protected String mStateOutput;
-    //EditText mLocationAddress;
+
     TextView mLocationText;
     Button mAddPin;
-    Button mAddPinHere;
     private static final int REQUEST_CODE_AUTOCOMPLETE = 1;
-    Toolbar mToolbar;
     View mapView;
+    double pin_latitude;
+    double pin_longitude;
 
-    TextView user_name, user_email;
-    ImageView user_picture;
-    JSONObject response, profile_pic_data, profile_pic_url;
-
+    String fb_id,fb_email,fb_name,fb_pic_data,fb_pic_url;
+    ChildEventListener mChildEventListener;
+    DatabaseReference mProfileRef = FirebaseDatabase.getInstance().getReference("Profile");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.gmap_activity);
         mContext = this;
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -101,51 +107,34 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);*/
 
         mLocationText = (TextView) findViewById(R.id.Locality);
-        mToolbar = (Toolbar) findViewById(R.id.toolbar);
-        mAddPin = (Button) findViewById(R.id.addpin_gmap);
+       // mLocationAddress = (EditText) findViewById(R.id.Address);
+        mAddPin = (Button) findViewById(R.id.select_map);
+
+       // mAddPin.setLongClickable(true);
+        registerForContextMenu(mAddPin);
+
 
         mapFragment.getMapAsync(this);
         mResultReceiver = new AddressResultReceiver(new Handler());
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        Intent intent = getIntent();
+        String jsondata = intent.getStringExtra("jsondata");
+        setUserProfile();
+
 
         //setSupportActionBar(mToolbar);
        // getSupportActionBar().setDisplayShowHomeEnabled(true);
 
         //getSupportActionBar().setTitle(getResources().getString(R.string.app_name));
-
       /* mLocationText.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 openAutocompleteActivity();
             }
         });*/
-        Intent intent = getIntent();
-        String jsondata = intent.getStringExtra("jsondata");
-        setNavigationHeader();
-        setUserProfile(jsondata);
 
-
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-
-        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
-        navigationView.setNavigationItemSelectedListener(this);
-
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
-        drawer.setDrawerListener(toggle);
-        toggle.syncState();
-
-       FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                /*
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();*/
-
-            }
-        });
+       /* Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);*/
 
         mLocationText.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -153,14 +142,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                openAutocompleteActivity();
             }
         });
-       mAddPin.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View view) {
-               showPinSelector();
-            }
-        });
-
-
-
 
         if (checkPlayServices()) {
             // If this check succeeds, proceed with normal processing.
@@ -190,22 +171,35 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         } else {
             Toast.makeText(mContext, "Location not supported in this device", Toast.LENGTH_SHORT).show();
         }
+    }
+    public  void  setUserProfile(){
+        try {
+            fb_id = getIntent().getStringExtra("fb_id");
+            fb_email = getIntent().getStringExtra("fb_email");
+            fb_name = getIntent().getStringExtra("fb_name");
 
+            fb_pic_data = getIntent().getStringExtra("fb_pic_data").toString();
+            fb_pic_url = getIntent().getStringExtra("fb_pic_url").toString();
+
+            Toast.makeText(mContext, "เลือกตำแหน่งที่ต้องการแล้วกดยืนยัน", Toast.LENGTH_SHORT).show();
+        } catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
-
-    /**
-     * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
-     * If Google Play services is not installed on the device, the user will be prompted to install
-     * it inside the SupportMapFragment. This method will only be triggered once the user has
-     * installed Google Play services and returned to the app.
-     */
     @Override
+    public boolean onOptionsItemSelected(MenuItem menuItem)
+    {
+        switch (menuItem.getItemId()) {
+            case android.R.id.home:
+                onBackPressed();
+                return true;
+            default:
+                return super.onOptionsItemSelected(menuItem);
+        }
+    }
 
-    public void onMapReady(GoogleMap googleMap) {
+    public void onMapReady(final GoogleMap googleMap) {
         Log.d(TAG, "OnMapReady");
         mMap = googleMap;
 
@@ -225,7 +219,61 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                     mLocation.setLongitude(mCenterLatLong.longitude);
 
                     startIntentService(mLocation);
-                    mLocationMarkerText.setText("Lat : " + mCenterLatLong.latitude + "," + "Long : " + mCenterLatLong.longitude);
+
+
+                 //  mLocationMarkerText.setText("Lat : " + mCenterLatLong.latitude + "," + "Long : " + mCenterLatLong.longitude);
+
+                    mAddPin.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            view.showContextMenu();
+
+                            //Toast.makeText(mContext, "SET", Toast.LENGTH_SHORT).show();
+                            // addMarkersToMap(googleMap);
+                            /*FirebaseDatabase database = FirebaseDatabase.getInstance();
+                            DatabaseReference myRef = database.getReference("location");
+                            myRef.setValue(mCenterLatLong.latitude,mCenterLatLong.longitude);*/
+                            //String dbLocation = "data/place";
+                           // Toast.makeText(mContext, dbLocation, Toast.LENGTH_SHORT).show();
+
+
+                            FacebookProfile fb_profile = new FacebookProfile(fb_id, fb_email, fb_name, fb_pic_data, fb_pic_url);
+                           // String date_time = DateFormat.getDateTimeInstance().format(new Date());
+                             pin_latitude = mCenterLatLong.latitude;
+                             pin_longitude = mCenterLatLong.longitude;
+
+
+                          //  DBDetails details = new DBDetails(fb_id ,date_time, "checkpoint",pin_latitude,pin_longitude);
+
+                           // DatabaseReference ref = FirebaseDatabase.getInstance().getReference(dbLocation);
+
+                           // ref.child("facebook_profile").setValue(fb_profile);
+
+
+
+                            //ref.child("pin").push().setValue(details);
+
+
+                          //  ref.child("pin/location").push().setValue(mCenterLatLong.latitude, mCenterLatLong.longitude);
+
+                          //  ref.updateChildren("ss");
+                          //  GeoFire geoFire = new GeoFire(FirebaseDatabase.getInstance().getReference().child("items_location");
+
+                         //   GeoFire geoFire = new GeoFire(ref);
+                           /* geoFire.setLocation("pin/pin-location", new GeoLocation(mCenterLatLong.latitude, mCenterLatLong.longitude), new GeoFire.CompletionListener() {
+
+                                @Override
+                                public void onComplete(String key, DatabaseError error) {
+                                    if (error != null) {
+                                        System.err.println("There was an error saving the location to GeoFire: " + error);
+                                    } else {
+                                        System.out.println("Location saved on server successfully!");
+                                    }
+
+                                }
+                            });*/
+                        }
+                    });
 
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -233,13 +281,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             }
         });
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
+
             return;
         }
         if (mapView != null &&
@@ -256,20 +298,91 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             // position on right bottom
             layoutParams.addRule(RelativeLayout.ALIGN_PARENT_TOP, 0);
             layoutParams.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM, RelativeLayout.TRUE);
-            layoutParams.setMargins(0, 0, 30, 400);
+            layoutParams.setMargins(0, 0, 30, 1370);
 
             layoutParams2.addRule(RelativeLayout.ALIGN_PARENT_TOP, 0);
             layoutParams2.addRule(RelativeLayout.ALIGN_PARENT_TOP, RelativeLayout.TRUE);
-            layoutParams2.setMargins(950, 400, 0, 0);
+            layoutParams2.setMargins(30, 200, 0, 0);
 
         }
-//        mMap.setMyLocationEnabled(true);
-//        mMap.getUiSettings().setMyLocationButtonEnabled(true);
-//
-//        // Add a marker in Sydney and move the camera
-//        LatLng sydney = new LatLng(-34, 151);
-//        mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
-//        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
+    }
+    private void setFirebaseDB(String fb_id,double pin_latitude,double pin_longitude,String pin_type,float vote_rating,int vote_amount){
+
+        Long tsLong = System.currentTimeMillis()/1000;
+        String server_timestamp = tsLong.toString();
+
+        String dbLocation = "data/place";
+
+        DBDetails details = new DBDetails(fb_id ,server_timestamp, pin_type,pin_latitude,pin_longitude,vote_rating,vote_amount);
+        DatabaseReference ref = FirebaseDatabase.getInstance().getReference(dbLocation);
+        ref.child("pin").push().setValue(details);
+        GeoFire geoFire = new GeoFire(ref);
+        onBackPressed();
+
+    }
+    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo)
+    {
+        super.onCreateContextMenu(menu, v, menuInfo);
+        menu.setHeaderTitle("กรุณาเลือกประเภท");
+        menu.add(0, v.getId(), 0, "ด่านตรวจ");//groupId, itemId, order, title
+        menu.add(0, v.getId(), 0, "มีอุบัติเหตุ");
+        menu.add(0, v.getId(), 0, "ขอความช่วยเหลือ");
+    }
+    public boolean onContextItemSelected(MenuItem item){
+        if(item.getTitle()=="ด่านตรวจ"){
+            Toast.makeText(getApplicationContext(),"เพิ่มหมุด 'ด่านตรวจ' แล้ว",Toast.LENGTH_LONG).show();
+            setFirebaseDB(fb_id,pin_latitude,pin_longitude,"checkpoint",(float) 0.001,0);
+        }
+        else if(item.getTitle()=="มีอุบัติเหตุ"){
+            Toast.makeText(getApplicationContext(),"เพิ่มหมุด 'มีอุบัติเหตุ' แล้ว",Toast.LENGTH_LONG).show();
+            setFirebaseDB(fb_id,pin_latitude,pin_longitude,"accident",(float) 0.001,0);
+        }
+        else if(item.getTitle()=="ขอความช่วยเหลือ"){
+            Toast.makeText(getApplicationContext(),"เพิ่มหมุด 'ขอความช่วยเหลือ' แล้ว",Toast.LENGTH_LONG).show();
+            setFirebaseDB(fb_id,pin_latitude,pin_longitude,"help", (float) 0.001,0);
+        }else{
+            return false;
+        }
+        return true;
+    }
+
+    private void addMarkersToMap(final GoogleMap map) {
+
+        mChildEventListener = mProfileRef.addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+                FirebaseMarker marker = dataSnapshot.getValue(FirebaseMarker.class);
+                String dob = marker.getDob();
+                String dod = marker.getDod();
+                double latitude =13.718808210301157;
+                double longitude = 100.78167892992496;
+                String firstname = "wow";
+                String lastname = marker.getLastname();
+                LatLng location = new LatLng(latitude, longitude);
+                map.addMarker(new MarkerOptions().position(location).title(firstname));
+
+            }
+
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+
+            }
+
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
     }
 
 
@@ -343,7 +456,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     }
 
-
     protected synchronized void buildGoogleApiClient() {
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addConnectionCallbacks(this)
@@ -351,7 +463,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 .addApi(LocationServices.API)
                 .build();
     }
-
     @Override
     protected void onStart() {
         super.onStart();
@@ -365,6 +476,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     @Override
     protected void onStop() {
+        if(mChildEventListener != null)
+            mProfileRef.removeEventListener(mChildEventListener);
         super.onStop();
         try {
 
@@ -394,28 +507,19 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
         Log.d(TAG, "Reaching map" + mMap);
 
-
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
             return;
         }
 
-        // check if map is created successfully or not
         if (mMap != null) {
             mMap.getUiSettings().setZoomControlsEnabled(false);
             LatLng latLong;
 
-
             latLong = new LatLng(location.getLatitude(), location.getLongitude());
 
             CameraPosition cameraPosition = new CameraPosition.Builder()
-                    .target(latLong).zoom(19f).build();
+                    .target(latLong).zoom(17f).build();
             mMap.setMapType(GoogleMap.MAP_TYPE_TERRAIN);
 
             mMap.setMyLocationEnabled(true);
@@ -423,59 +527,15 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             mMap.animateCamera(CameraUpdateFactory
                     .newCameraPosition(cameraPosition));
 
-            mLocationMarkerText.setText("Lat : " + location.getLatitude() + "," + "Long : " + location.getLongitude());
+          //  mLocationMarkerText.setText("Lat : " + location.getLatitude() + "," + "Long : " + location.getLongitude());
             startIntentService(location);
-
 
         } else {
             Toast.makeText(getApplicationContext(),
                     "Sorry! unable to create maps", Toast.LENGTH_SHORT)
                     .show();
         }
-
     }
-    public void setNavigationHeader(){
-        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
-        View header = LayoutInflater.from(this).inflate(R.layout.nav_header_main, null);
-        navigationView.addHeaderView(header);
-        user_name = (TextView) header.findViewById(R.id.username);
-        user_picture = (ImageView) header.findViewById(R.id.profile_pic);
-        user_email = (TextView) header.findViewById(R.id.email);
-    }
-    public  void  setUserProfile(String jsondata){
-        try {
-            response = new JSONObject(jsondata);
-            user_email.setText(response.get("email").toString());
-            user_name.setText(response.get("name").toString());
-            profile_pic_data = new JSONObject(response.get("picture").toString());
-            profile_pic_url = new JSONObject(profile_pic_data.getString("data"));
-            Picasso.with(this).load(profile_pic_url.getString("url")).into(user_picture);
-        } catch (Exception e){
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-        int id = item.getItemId();
-
-        if (id == R.id.nav_camera) {
-            Toast.makeText(mContext, "Location not supported in this device", Toast.LENGTH_SHORT).show();
-
-        } else if (id == R.id.nav_gallery) {
-
-        } else if (id == R.id.nav_share) {
-
-        } else if (id == R.id.nav_send) {
-
-        }
-
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        drawer.closeDrawer(GravityCompat.START);
-        return true;
-    }
-
-
     /**
      * Receiver for data sent from FetchAddressIntentService.
      */
@@ -503,35 +563,25 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             // Show a toast message if an address was found.
             if (resultCode == AppUtils.LocationConstants.SUCCESS_RESULT) {
                 //  showToast(getString(R.string.address_found));
-
-
             }
-
-
         }
-
     }
-
-    /**
-     * Updates the address in the UI.
-     */
     protected void displayAddressOutput() {
         //  mLocationAddressTextView.setText(mAddressOutput);
         try {
             if (mAreaOutput != null)
                 // mLocationText.setText(mAreaOutput+ "");
+                //mLocationAddress.setText(mAddressOutput);
 
-                mLocationText.setText(mAddressOutput);
-            //mLocationText.setText(mAreaOutput);
+             //  mLocationText.setText(mAddressOutput);
+            mLocationMarkerText.setText(mAddressOutput);
+          //  mLocationText.setText(mAreaOutput);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    /**
-     * Creates an intent, adds location data to it as an extra, and starts the intent service for
-     * fetching an address.
-     */
+
     protected void startIntentService(Location mLocation) {
         // Create an intent for passing to the intent service responsible for fetching the address.
         Intent intent = new Intent(this, FetchAddressIntentService.class);
@@ -542,9 +592,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         // Pass the location data as an extra to the service.
         intent.putExtra(AppUtils.LocationConstants.LOCATION_DATA_EXTRA, mLocation);
 
-        // Start the service. If the service isn't already running, it is instantiated and started
-        // (creating a process for it if needed); if it is running then it remains running. The
-        // service kills itself automatically once all intents are processed.
         startService(intent);
     }
 
@@ -588,26 +635,16 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 Place place = PlaceAutocomplete.getPlace(mContext, data);
 
                 // TODO call location based filter
-
-
                 LatLng latLong;
-
-
                 latLong = place.getLatLng();
 
                 //mLocationText.setText(place.getName() + "");
 
                 CameraPosition cameraPosition = new CameraPosition.Builder()
-                        .target(latLong).zoom(19f).tilt(70).build();
+                        .target(latLong).zoom(17f).build();
 
                 if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                     // TODO: Consider calling
-                    //    ActivityCompat#requestPermissions
-                    // here to request the missing permissions, and then overriding
-                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                    //                                          int[] grantResults)
-                    // to handle the case where the user grants the permission. See the documentation
-                    // for ActivityCompat#requestPermissions for more details.
                     return;
                 }
                 mMap.setMyLocationEnabled(true);
@@ -621,8 +658,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         } else if (resultCode == PlaceAutocomplete.RESULT_ERROR) {
             Status status = PlaceAutocomplete.getStatus(mContext, data);
         } else if (resultCode == RESULT_CANCELED) {
-            // Indicates that the activity closed before a selection was made. For example if
-            // the user pressed the back button.
+
         }
     }
 
