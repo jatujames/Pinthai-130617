@@ -4,4 +4,4 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:scrollbars="vertical"
-    android:background="@color/wallet_bright_foreground_disabled_holo_light" />
+    android:background="@color/cardview_light_background" />

@@ -25,59 +25,97 @@
 
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:id="@+id/card_pin"
         android:visibility="invisible">
 
         <LinearLayout
             android:orientation="vertical"
             android:layout_width="match_parent"
-            android:layout_height="368dp"
-            android:layout_marginBottom="200dp"
-            android:id="@+id/card_pin_hide">
+            android:id="@+id/card_pin_hide"
+            android:layout_gravity="top|center"
+            android:layout_height="347dp">
 
         </LinearLayout>
 
         <LinearLayout
             android:orientation="vertical"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:background="@color/com_facebook_button_login_silver_background_color"
-            android:layout_marginTop="345dp">
+            android:gravity="bottom|center"
+            android:layout_gravity="bottom|center">
 
             <LinearLayout
                 android:orientation="vertical"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="?android:attr/colorPrimary"
+                android:background="?attr/colorPrimary"
                 android:paddingLeft="10dp"
                 android:paddingRight="10dp">
 
-                <TextView
-                    android:text="TextView"
+                <LinearLayout
+                    android:orientation="horizontal"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:id="@+id/card_pin_texttitle"
-                    android:textSize="24sp"
-                    android:textColor="@color/cast_expanded_controller_text_color"
-                    android:textAlignment="textStart" />
+                    android:layout_height="wrap_content">
 
-                <TextView
-                    android:text="TextView"
+                    <TextView
+                        android:text="TextView"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:id="@+id/card_pin_texttitle"
+                        android:textSize="18sp"
+                        android:textColor="@color/cast_expanded_controller_text_color"
+                        android:textAlignment="textStart"
+                        android:layout_weight="2" />
+
+                    <ImageButton
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:srcCompat="@drawable/ic_directions"
+                        android:id="@+id/gmap_dir_button" />
+
+                    <Button
+                        android:text="แบ่งปัน"
+                        android:layout_width="wrap_content"
+                        android:layout_height="28dp"
+                        android:id="@+id/fb_share_button"
+                        style="@style/com_facebook_button_share"
+                        android:layout_gravity="center" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:orientation="vertical"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:id="@+id/card_pin_text1"
-                    android:textSize="18sp"
-                    android:textAlignment="textStart"
-                    android:textColor="@color/cast_expanded_controller_text_color" />
-                <TextView
-                    android:text="TextView"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:id="@+id/card_pin_text2"
-                    android:textSize="12sp"
-                    android:textAlignment="textEnd"
-                    android:textColor="@color/cast_expanded_controller_text_color" />
+                    android:layout_height="match_parent">
+
+                    <TextView
+                        android:text="TextView"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:id="@+id/card_pin_text1"
+                        android:textSize="14sp"
+                        android:textAlignment="textStart"
+                        android:textColor="@color/cast_expanded_controller_text_color" />
+
+                    <TextView
+                        android:text='"ไม่มีข้อมูลเพิ่มเติม"'
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/cast_expanded_controller_text_color"
+                        android:textAlignment="textStart"
+                        android:id="@+id/card_pin_text3" />
+
+                    <TextView
+                        android:text="TextView"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:id="@+id/card_pin_text2"
+                        android:textSize="12sp"
+                        android:textAlignment="textEnd"
+                        android:textColor="@color/cast_expanded_controller_text_color" />
+                </LinearLayout>
+
             </LinearLayout>
 
             <LinearLayout
@@ -88,14 +126,14 @@
                 <LinearLayout
                     android:orientation="horizontal"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent">
+                    android:layout_height="wrap_content">
 
                     <LinearLayout
                         android:orientation="vertical"
                         android:layout_width="wrap_content"
                         android:layout_height="match_parent"
                         android:paddingLeft="10dp"
-                        android:background="@android:color/holo_green_light"
+                        android:background="@color/com_facebook_button_background_color_focused_disabled"
                         android:paddingRight="10dp">
 
                         <TextView
@@ -137,7 +175,7 @@
                     <LinearLayout
                         android:orientation="vertical"
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent"
+                        android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:weightSum="1"
                         android:paddingTop="5dp">
@@ -160,7 +198,6 @@
                             android:layout_gravity="center"
                             android:foregroundGravity="center"
                             android:layout_marginLeft="10dp"
-                            android:minHeight="28dp"
                             android:stepSize="1"/>
 
                         <Button
@@ -175,7 +212,8 @@
                             android:minWidth="48dip"
                             android:gravity="center"
                             android:layout_marginTop="10dp"
-                            android:layout_gravity="center" />
+                            android:layout_gravity="center"
+                            android:layout_marginBottom="10dp" />
                     </LinearLayout>
 
                 </LinearLayout>

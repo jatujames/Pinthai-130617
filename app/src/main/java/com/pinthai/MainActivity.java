@@ -2,16 +2,22 @@ package com.pinthai;
 
 import android.Manifest;
 import android.app.AlertDialog;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.ResultReceiver;
+import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
 
@@ -25,14 +31,18 @@ import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.app.NotificationCompat;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.ContextMenu;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RatingBar;
@@ -42,6 +52,14 @@ import android.widget.Toast;
 
 import com.daimajia.androidanimations.library.Techniques;
 import com.daimajia.androidanimations.library.YoYo;
+import com.facebook.AccessToken;
+import com.facebook.AccessTokenTracker;
+import com.facebook.GraphRequest;
+import com.facebook.GraphResponse;
+import com.facebook.HttpMethod;
+import com.facebook.login.LoginManager;
+import com.facebook.share.model.ShareLinkContent;
+import com.facebook.share.widget.ShareDialog;
 import com.firebase.client.Firebase;
 import com.firebase.client.FirebaseError;
 import com.firebase.geofire.GeoFire;
@@ -107,6 +125,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected String mAreaOutput;
     protected String mCityOutput;
     protected String mStateOutput;
+    boolean doubleBackToExitPressedOnce = false;
 
     TextView mLocationText;
     Button rateing_button;
@@ -115,16 +134,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     View mapView;
     FrameLayout card_layout;
     LinearLayout card_layout_hide;
-    TextView user_name, user_email, pin_texttitle, pin_text1, pin_text2, vote_rating_text, vote_amount_text;
+    TextView user_name, user_email, pin_texttitle, pin_text1, pin_text2,pin_text3, vote_rating_text, vote_amount_text;
     ImageView user_picture;
     JSONObject response, profile_pic_data, profile_pic_url;
 
     FloatingActionMenu materialDesignFAM;
     FloatingActionButton floatingActionButton1, floatingActionButton2;
-
+    public static final int MY_PERMISSIONS_REQUEST_LOCATION = 99;
     String tx_user_name,tx_user_email,tx_user_id;
     JSONObject tx_user_pic_url,tx_user_pic_data;
     DatabaseReference mProfileRef = FirebaseDatabase.getInstance().getReference("Profile");
+    SharedPreferences sharedpreferences;
+    private Notification notification;
 
     private Firebase mRef,mRef2;
     double lat,lng;
@@ -134,6 +155,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mContext = this;
+
+        stopService(new Intent(this, BackgroundLocationService.class));
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -147,9 +170,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         pin_texttitle = (TextView) findViewById(R.id.card_pin_texttitle);
         pin_text1 = (TextView) findViewById(R.id.card_pin_text1);
         pin_text2 = (TextView) findViewById(R.id.card_pin_text2);
+        pin_text3 = (TextView) findViewById(R.id.card_pin_text3);
         vote_rating_text = (TextView) findViewById(R.id.vote_rating_text);
         vote_amount_text = (TextView) findViewById(R.id.vote_amount_text);
         card_layout_hide = (LinearLayout) findViewById(R.id.card_pin_hide);
+        checkLocationPermission();
 
         card_layout_hide.setOnClickListener(new View.OnClickListener(){
             public void onClick(View v) {
@@ -168,6 +193,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         Intent intent = getIntent();
         String jsondata = intent.getStringExtra("jsondata");
         setNavigationHeader();
+
         setUserProfile(jsondata);
 
         onSetPin();
@@ -187,11 +213,23 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         floatingActionButton1 = (FloatingActionButton) findViewById(R.id.material_design_floating_action_menu_item1);
         floatingActionButton2 = (FloatingActionButton) findViewById(R.id.material_design_floating_action_menu_item2);
 
-        //final FloatingActionButton programFab1 = new FloatingActionButton(this);
+        sharedpreferences = getSharedPreferences("FB-Data", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedpreferences.edit();
+        editor.putString("fb_email", tx_user_email );
+        editor.putString("fb_name", tx_user_name );
+        editor.putString("fb_id", tx_user_id );
+        editor.putString("fb_pic_data", tx_user_pic_data.toString());
+        editor.putString("fb_pic_url", tx_user_pic_url.toString());
+        editor.commit();
+
+
+                //final FloatingActionButton programFab1 = new FloatingActionButton(this);
         materialDesignFAM.setClosedOnTouchOutside(true);
 
         floatingActionButton1.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
+                checkLocationPermission();
+
                 Intent i = new Intent(MainActivity.this, MapActivity.class);
                 i.putExtra("fb_email", tx_user_email );
                 i.putExtra("fb_name", tx_user_name );
@@ -200,10 +238,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 i.putExtra("fb_pic_url", tx_user_pic_url.toString());
                 startActivity(i);
 
+
             }
         });
         floatingActionButton2.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
+                checkLocationPermission();
                 registerForContextMenu(floatingActionButton2);
                 v.showContextMenu();
             }
@@ -247,22 +287,77 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
     }
+    public boolean checkLocationPermission() {
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission. ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            // Should we show an explanation?
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    Manifest.permission. ACCESS_FINE_LOCATION)) {
+
+                ActivityCompat.requestPermissions(MainActivity.this,
+                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                        MY_PERMISSIONS_REQUEST_LOCATION);
+
+
+
+            } else {
+                // No explanation needed, we can request the permission.
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission. ACCESS_FINE_LOCATION},
+                        MY_PERMISSIONS_REQUEST_LOCATION);
+            }
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case MY_PERMISSIONS_REQUEST_LOCATION: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    // permission was granted, yay! Do the
+                    // location-related task you need to do.
+                    if (ContextCompat.checkSelfPermission(this,
+                            Manifest.permission. ACCESS_FINE_LOCATION)
+                            == PackageManager.PERMISSION_GRANTED) {
+                        //Request location updates:
+                        finish();
+                        startActivity(getIntent());
+                    }
+
+                } else {
+                    finish();
+                    startActivity(getIntent());
+                }
+                return;
+            }
+
+        }
+    }
     public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo)
     {
         super.onCreateContextMenu(menu, v, menuInfo);
         menu.setHeaderTitle("กรุณาเลือกประเภท");
-        menu.add(0, v.getId(), 0, "ด่านตรวจ");//groupId, itemId, order, title
+        menu.add(0, v.getId(), 0, "สิ่งกีดขวางควรหลีกเลี่ยง");//groupId, itemId, order, title
         menu.add(0, v.getId(), 0, "มีอุบัติเหตุ");
         menu.add(0, v.getId(), 0, "ขอความช่วยเหลือ");
     }
-    private void setFirebaseDB(String fb_id,double pin_latitude,double pin_longitude,String pin_type,float vote_rating,int vote_amount){
+    private void setFirebaseDB(String fb_id,double pin_latitude,double pin_longitude,String pin_type,float vote_rating,int vote_amount,String info){
 
         Long tsLong = System.currentTimeMillis()/1000;
         String server_timestamp = tsLong.toString();
 
         String dbLocation = "data/place";
 
-        DBDetails details = new DBDetails(fb_id ,server_timestamp, pin_type,pin_latitude,pin_longitude,vote_rating,vote_amount);
+        DBDetails details = new DBDetails(fb_id ,server_timestamp, pin_type,pin_latitude,pin_longitude,vote_rating,vote_amount,info);
         DatabaseReference ref = FirebaseDatabase.getInstance().getReference(dbLocation);
         ref.child("pin").push().setValue(details);
         GeoFire geoFire = new GeoFire(ref);
@@ -271,17 +366,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
     public boolean onContextItemSelected(MenuItem item){
-        if(item.getTitle()=="ด่านตรวจ"){
-            Toast.makeText(getApplicationContext(),"เพิ่มหมุด 'ด่านตรวจ' แล้ว",Toast.LENGTH_LONG).show();
-            setFirebaseDB(tx_user_id,lat,lng,"checkpoint",(float) 0.001,0);
+        if(item.getTitle()=="สิ่งกีดขวางควรหลีกเลี่ยง"){
+            Toast.makeText(getApplicationContext(),"เพิ่มหมุด 'สิ่งกีดขวางควรหลีกเลี่ยง' แล้ว",Toast.LENGTH_LONG).show();
+            setFirebaseDB(tx_user_id,lat,lng,"สิ่งกีดขวางควรหลีกเลี่ยง",(float) 0.001,0,"ไม่มีข้อมูลเพิ่มเติม");
         }
         else if(item.getTitle()=="มีอุบัติเหตุ"){
             Toast.makeText(getApplicationContext(),"เพิ่มหมุด 'มีอุบัติเหตุ' แล้ว",Toast.LENGTH_LONG).show();
-            setFirebaseDB(tx_user_id,lat,lng,"accident",(float) 0.001,0);
+            setFirebaseDB(tx_user_id,lat,lng,"มีอุบัติเหตุ",(float) 0.001,0, "ไม่มีข้อมูลเพิ่มเติม");
         }
         else if(item.getTitle()=="ขอความช่วยเหลือ"){
             Toast.makeText(getApplicationContext(),"เพิ่มหมุด 'ขอความช่วยเหลือ' แล้ว",Toast.LENGTH_LONG).show();
-            setFirebaseDB(tx_user_id,lat,lng,"help", (float) 0.001,0);
+            setFirebaseDB(tx_user_id,lat,lng,"ขอความช่วยเหลือ", (float) 0.001,0, "ไม่มีข้อมูลเพิ่มเติม");
         }else{
             return false;
         }
@@ -324,12 +419,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mMap = googleMap;
 
         mRef = new Firebase("https://pinthai-84714.firebaseio.com/data/place/pin");
+
         Long tsLong = System.currentTimeMillis()/1000;
-        Long tsLong2 = (System.currentTimeMillis()/1000)-14400;
+        Long tsLong2 = (System.currentTimeMillis()/1000)-3600;
         String server_timestamp = tsLong.toString();
         String time_four = tsLong2.toString();
         mRef.orderByChild("current_date").startAt(tsLong2);
         mRef.orderByChild("current_date").startAt(time_four).addValueEventListener(new com.firebase.client.ValueEventListener() {
+
             @Override
             public void onDataChange(com.firebase.client.DataSnapshot dataSnapshot) {
                 if (dataSnapshot.exists()) {
@@ -344,6 +441,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         String pintype = (String) issue.child("pin_type").getValue();
                         String pin_key = (String) issue.getKey();
                         long vote_amount = (long) issue.child("vote_amount").getValue();
+                        String info = (String) issue.child("info").getValue();
 
                         double vote_rating = (double) issue.child("vote_rating").getValue();
                       //  double vote_rating = Double.parseDouble((String) dataSnapshot.child("vote_rating").getValue());
@@ -356,33 +454,37 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             String add = obj.getAddressLine(0);
                            // add = add + "\n" + obj.getLocality();
                            // add = add + "\n" + obj.getSubThoroughfare();
-                            if(pintype.equals("checkpoint")){
-                                Marker marker = mMap.addMarker(new MarkerOptions()
-                                        .position(new LatLng(latitude, longitude))
-                                        .title(add+" ")
-                                        .snippet(pintype+" ")
-                                        .icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_pin_police)));
-                                marker.setTag(new GetDBValue(pin_key,fb_id,date_conv,pintype,latitude,longitude,vote_rating,vote_amount));
 
-                            }
-                            else if(pintype.equals("accident")){
-                                Marker marker = mMap.addMarker(new MarkerOptions()
-                                        .position(new LatLng(latitude, longitude))
-                                        .title(add+" ")
-                                        .snippet(pintype+" ")
-                                        .icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_pin_accident)));
-                                marker.setTag(new GetDBValue(pin_key,fb_id,date_conv,pintype,latitude,longitude,vote_rating,vote_amount));
+                            if(vote_amount >= 3 && vote_rating < 3.0 ) {
 
-                            }
-                            else if(pintype.equals("help")){
-                                Marker marker = mMap.addMarker(new MarkerOptions()
-                                        .position(new LatLng(latitude, longitude))
-                                        .title(add+" ")
-                                        .snippet(pintype+" ")
-                                        .icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_pin_help)));
-                                marker.setTag(new GetDBValue(pin_key,fb_id,date_conv,pintype,latitude,longitude,vote_rating,vote_amount));
+                            }else{
+                                if (pintype.equals("สิ่งกีดขวางควรหลีกเลี่ยง")) {
+                                    Marker marker = mMap.addMarker(new MarkerOptions()
+                                            .position(new LatLng(latitude, longitude))
+                                            .title(add + " ")
+                                            .snippet(pintype + " ")
+                                            .icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_pin_danger)));
+                                    marker.setTag(new GetDBValue(pin_key, fb_id, date_conv, pintype, latitude, longitude, vote_rating, vote_amount, info));
 
+                                } else if (pintype.equals("มีอุบัติเหตุ")) {
+                                    Marker marker = mMap.addMarker(new MarkerOptions()
+                                            .position(new LatLng(latitude, longitude))
+                                            .title(add + " ")
+                                            .snippet(pintype + " ")
+                                            .icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_pin_accident)));
+                                    marker.setTag(new GetDBValue(pin_key, fb_id, date_conv, pintype, latitude, longitude, vote_rating, vote_amount, info));
+
+                                } else if (pintype.equals("ขอความช่วยเหลือ")) {
+                                    Marker marker = mMap.addMarker(new MarkerOptions()
+                                            .position(new LatLng(latitude, longitude))
+                                            .title(add + " ")
+                                            .snippet(pintype + " ")
+                                            .icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_pin_help)));
+                                    marker.setTag(new GetDBValue(pin_key, fb_id, date_conv, pintype, latitude, longitude, vote_rating, vote_amount, info));
+
+                                }
                             }
+
                            // Log.v("IGA", "Address" + add);
                             // Toast.makeText(this, "Address=>" + add,
                             // Toast.LENGTH_SHORT).show();
@@ -406,7 +508,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
-            public boolean onMarkerClick(Marker marker) {
+            public boolean onMarkerClick(final Marker marker) {
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(marker.getPosition(), 19.0f)); //zoom out
 
                 card_layout.setVisibility(View.VISIBLE);
@@ -421,52 +523,152 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 pin_text1.setText(marker.getTitle());
                 final GetDBValue data = (GetDBValue) marker.getTag();
                 pin_text2.setText("เพิ่มเมื่อ "+data.current_date.toString());
+
+
                 Button sentdata = (Button) findViewById(R.id.rating_button);
+
                 mRef2 = new Firebase("https://pinthai-84714.firebaseio.com/data/place/pin/"+data.pin_key);
-                mRef2.addListenerForSingleValueEvent(new  com.firebase.client.ValueEventListener() {
+                mRef2.addListenerForSingleValueEvent(new com.firebase.client.ValueEventListener() {
                     @Override
                     public void onDataChange(com.firebase.client.DataSnapshot dataSnapshot) {
-                        if(dataSnapshot != null) {
-                            vote_amount_text.setText(Long.toString((long) dataSnapshot.child("vote_amount").getValue()));
-                            double new_rating2 = (double) dataSnapshot.child("vote_rating").getValue();
-
-                            double l = Double.parseDouble(String.valueOf(dataSnapshot.child("vote_rating").getValue()));
-                            vote_rating_text.setText(String.format("%.1f", l));
+                        if(dataSnapshot.child("vote_rating").getValue() == null || (data.vote_amount >= 3 && data.vote_rating < 3.0)){
+                            marker.remove();
+                            card_layout.setVisibility(View.GONE);
+                            materialDesignFAM.setVisibility(View.VISIBLE);
+                            YoYo.with(Techniques.SlideOutDown)
+                                    .duration(400)
+                                    .repeat(0)
+                                    .playOn(findViewById(R.id.card_pin));
                         }
-                    }
-                    @Override
-                    public void onCancelled(FirebaseError firebaseError) {
+                        else if (dataSnapshot != null) {
+                            vote_amount_text.setText(Long.toString((long) dataSnapshot.child("vote_amount").getValue()));
+                             double new_rating2 = (double) dataSnapshot.child("vote_rating").getValue();
 
+                                double l = Double.parseDouble(String.valueOf(dataSnapshot.child("vote_rating").getValue()));
+                                vote_rating_text.setText(String.format("%.1f", l));
+
+                            Button fb_share_button = (Button) findViewById(R.id.fb_share_button);
+                            ImageButton gmap_butt = (ImageButton) findViewById(R.id.gmap_dir_button);
+                            String disc = "";
+
+                            if(!data.info.equals("ไม่มีข้อมูลเพิ่มเติม"))
+                            {
+                                disc = data.info;
+                            }
+                            final String finalDisc = disc;
+                            fb_share_button.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    ShareLinkContent content = new ShareLinkContent.Builder()
+                                            .setContentUrl(Uri.parse("https://www.google.co.th/maps/place/"+data.latitude+","+data.longitude))
+                                            .setQuote("พบหมุด "+data.pin_type+" "+ finalDisc +"\n สถานที่: "+ marker.getTitle())
+                                            .build();
+                                    ShareDialog.show(MainActivity.this, content);
+
+                                }
+                            });
+                            gmap_butt.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    Intent intent = new Intent(android.content.Intent.ACTION_VIEW,
+                                            Uri.parse("geo:0,0?q="+data.latitude+","+data.longitude+" (" + data.pin_type + ")"));
+                                    startActivity(intent);
+
+                                }
+                            });
+
+                                String get_info = String.valueOf(dataSnapshot.child("info").getValue());
+                                if (get_info.equals("ไม่มีข้อมูลเพิ่มเติม") && data.fb_id.toString().equals(tx_user_id)) {
+                                    pin_text3.setText("\"แตะเพื่อเพิ่มข้อมูลเพิ่มเติม\"");
+                                } else {
+                                    pin_text3.setText("\"" + get_info + "\"");
+                                }
+                            }
+                        }
+
+                        @Override
+                        public void onCancelled(FirebaseError firebaseError) {
+                        }
+                });
+
+
+                pin_text3.setOnClickListener(new View.OnClickListener() {
+                    public void onClick(View v) {
+                        mRef2 = new Firebase("https://pinthai-84714.firebaseio.com/data/place/pin/"+data.pin_key);
+                        mRef2.addListenerForSingleValueEvent(new  com.firebase.client.ValueEventListener() {
+                            @Override
+                            public void onDataChange(com.firebase.client.DataSnapshot dataSnapshot) {
+                                if(data.fb_id.toString().equals(tx_user_id))
+                                {
+                                    LayoutInflater layoutInflaterAndroid = LayoutInflater.from(mContext);
+                                    View mView = layoutInflaterAndroid.inflate(R.layout.user_input_dialog_box, null);
+                                    AlertDialog.Builder alertDialogBuilderUserInput = new AlertDialog.Builder(mContext);
+                                    alertDialogBuilderUserInput.setView(mView);
+
+                                    final EditText userInputDialogEditText = (EditText) mView.findViewById(R.id.userInputDialog);
+                                    alertDialogBuilderUserInput
+                                            .setCancelable(false)
+                                            .setPositiveButton("ส่ง", new DialogInterface.OnClickListener() {
+                                                public void onClick(DialogInterface dialogBox, int id) {
+                                                    String dbLocation = "data/place/pin/" + data.pin_key;
+                                                    DatabaseReference ref = FirebaseDatabase.getInstance().getReference(dbLocation);
+                                                    String input_info = userInputDialogEditText.getText().toString();
+                                                    ref.child("info").setValue(input_info);
+                                                    pin_text3.setText("\"" + input_info + "\"");
+                                                }
+                                            })
+                                            .setNegativeButton("ยกเลิก",new DialogInterface.OnClickListener() {
+                                                        public void onClick(DialogInterface dialogBox, int id) {
+                                                            dialogBox.cancel();
+                                                        }
+                                            });
+                                    AlertDialog alertDialogAndroid = alertDialogBuilderUserInput.create();
+                                    alertDialogAndroid.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+                                    alertDialogAndroid.show();
+                                }
+                            }
+                            @Override
+                            public void onCancelled(FirebaseError firebaseError) {
+
+                            }
+                        });
                     }
                 });
 
+
+
+
                 sentdata.setOnClickListener(new View.OnClickListener() {
-                    @Override
+                        @Override
                     public void onClick(View v) {
                         mRef2 = new Firebase("https://pinthai-84714.firebaseio.com/data/place/pin/"+data.pin_key);
 
                         mRef2.addListenerForSingleValueEvent(new  com.firebase.client.ValueEventListener() {
                             @Override
                             public void onDataChange(com.firebase.client.DataSnapshot dataSnapshot) {
-                                float star = mBar.getRating();
-                                long v_amount = (long) dataSnapshot.child("vote_amount").getValue();
-                                double v_rate = (double) dataSnapshot.child("vote_rating").getValue();
-                                long v_amount_call = v_amount;
-                                if(v_amount == 0) v_amount_call+=1;
-                                double new_rating = (double) ((v_rate*v_amount_call)+star)/(v_amount+1);
-                                double a = (v_rate*v_amount_call)+star;
-                                double b = v_amount+1;
-                                double new_rating2 = a/b;
+                                if(!data.fb_id.toString().equals(tx_user_id)) {
+                                    float star = mBar.getRating();
+                                    long v_amount = (long) dataSnapshot.child("vote_amount").getValue();
+                                    double v_rate = (double) dataSnapshot.child("vote_rating").getValue();
+                                    long v_amount_call = v_amount;
+                                    if (v_amount == 0) v_amount_call += 1;
+                                    double new_rating = (double) ((v_rate * v_amount_call) + star) / (v_amount + 1);
+                                    double a = (v_rate * v_amount_call) + star;
+                                    double b = v_amount + 1;
+                                    double new_rating2 = a / b;
+                                    String dbLocation = "data/place/pin/" + data.pin_key;
 
-                                String dbLocation = "data/place/pin/"+data.pin_key;
-                                DatabaseReference ref = FirebaseDatabase.getInstance().getReference(dbLocation);
-                                ref.child("vote_rating").setValue(new_rating2);
-                                ref.child("vote_amount").setValue(v_amount+1);
+                                    DatabaseReference ref = FirebaseDatabase.getInstance().getReference(dbLocation);
+                                    ref.child("vote_rating").setValue(new_rating2);
+                                    ref.child("vote_amount").setValue(v_amount + 1);
 
-                                vote_amount_text.setText(Long.toString((Long) dataSnapshot.child("vote_amount").getValue()+1));
-                                vote_rating_text.setText(String.format("%.1f", new_rating2));
-                              //  System.out.println("IS "+a+"/"+b+"TO "+v_rate+"*"+v_amount+"+"+star );
-                                Toast.makeText(mContext, "ส่งผลโหวตแล้ว", Toast.LENGTH_SHORT).show();
+                                    vote_amount_text.setText(Long.toString((Long) dataSnapshot.child("vote_amount").getValue() + 1));
+                                    vote_rating_text.setText(String.format("%.1f", new_rating2));
+
+                                    Toast.makeText(mContext, "ส่งผลโหวตแล้ว", Toast.LENGTH_SHORT).show();
+                                }else{
+                                    Toast.makeText(mContext, "ไม่สามารถโหวตหมุดของตนเองได้", Toast.LENGTH_SHORT).show();
+                                }
 
                             }
                             @Override
@@ -685,6 +887,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             CameraPosition cameraPosition = new CameraPosition.Builder()
                     .target(latLong).zoom(16.0f).build();
             mMap.setMapType(GoogleMap.MAP_TYPE_TERRAIN);
+            mMap.setTrafficEnabled(true);
 
             mMap.setMyLocationEnabled(true);
             mMap.getUiSettings().setMyLocationButtonEnabled(true);
@@ -723,13 +926,56 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             tx_user_pic_data = new JSONObject(response.get("picture").toString());
             tx_user_pic_url = new JSONObject(profile_pic_data.getString("data"));
 
-            DatabaseReference ref = FirebaseDatabase.getInstance().getReference("data");
-            FacebookProfile fb_profile = new FacebookProfile(tx_user_id, tx_user_email, tx_user_name,tx_user_pic_data.toString(),tx_user_pic_url.toString());
-            ref.child("users").setValue(fb_profile);
+            DatabaseReference ref = FirebaseDatabase.getInstance().getReference("data/user");
+            FacebookProfile fb_profile = new FacebookProfile(tx_user_email, tx_user_name,tx_user_pic_data.toString(),tx_user_pic_url.toString());
+            ref.child(tx_user_id).setValue(fb_profile);
 
         } catch (Exception e){
             e.printStackTrace();
         }
+    }
+
+    public void onBackPressed() {
+        if (doubleBackToExitPressedOnce) {
+            Intent intent = new Intent(getApplicationContext(), LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            intent.putExtra("EXIT", true);
+           // startService(new Intent(this, BackgroundLocationService.class));
+            startActivity(intent);
+            super.finish();
+
+            return;
+        }
+
+        this.doubleBackToExitPressedOnce = true;
+        Toast.makeText(this, "กดปุ่ม \"ย้อนกลับ\" อีกครั้งเพื่อออก", Toast.LENGTH_SHORT).show();
+
+        new Handler().postDelayed(new Runnable() {
+
+            @Override
+            public void run() {
+                doubleBackToExitPressedOnce=false;
+            }
+        }, 2000);
+    }
+    public void disconnectFromFacebook() {
+
+        if (AccessToken.getCurrentAccessToken() == null) {
+            return; // already logged out
+        }
+
+        new GraphRequest(AccessToken.getCurrentAccessToken(), "/me/permissions/", null, HttpMethod.DELETE, new GraphRequest
+                .Callback() {
+            @Override
+            public void onCompleted(GraphResponse graphResponse) {
+
+                LoginManager.getInstance().logOut();
+
+                Intent intent = new Intent(getApplicationContext(), LoginActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(intent);
+            }
+        }).executeAsync();
     }
 
     @Override
@@ -756,8 +1002,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             startActivity(i);
 
         }
-        else if (id == R.id.nav_info) {
-            Toast.makeText(mContext, lat+" | "+lng, Toast.LENGTH_SHORT).show();
+       /*else if (id == R.id.nav_info) {
+
+        }*/
+        else if (id == R.id.nav_logout) {
+            disconnectFromFacebook();
         }
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
@@ -875,7 +1124,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 //mLocationText.setText(place.getName() + "");
 
                 CameraPosition cameraPosition = new CameraPosition.Builder()
-                        .target(latLong).zoom(19f).tilt(70).build();
+                        .target(latLong).zoom(17f).build();
 
                 if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                     // TODO: Consider calling

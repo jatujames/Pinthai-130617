@@ -13,7 +13,9 @@ public class GetDBValue {
     public double longitude;
     public double vote_rating;
     public double vote_amount;
-    public GetDBValue(String pin_key,String fb_id,String current_date, String pin_type, double latitude,double longitude,double vote_rating,double vote_amount ){
+    public String info;
+
+    public GetDBValue(String pin_key,String fb_id,String current_date, String pin_type, double latitude,double longitude,double vote_rating,double vote_amount,String info ){
         this.pin_key = pin_key;
         this.fb_id = fb_id;
         this.current_date = current_date;
@@ -22,6 +24,6 @@ public class GetDBValue {
         this.longitude = longitude;
         this.vote_rating = vote_rating;
         this.vote_amount = vote_amount;
-
+        this.info = info;
     }
 }

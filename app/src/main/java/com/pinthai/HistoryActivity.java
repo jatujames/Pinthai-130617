@@ -21,6 +21,8 @@ import com.firebase.client.Firebase;
 import com.firebase.client.FirebaseError;
 import com.pinthai.adapter.RecyclerViewAdapter;
 import com.pinthai.adapter.util.DividerItemDecoration;
+import com.pinthai.wrapper.GetDBValue;
+import com.pinthai.wrapper.HistoryData;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -43,7 +45,8 @@ public class HistoryActivity extends AppCompatActivity {
     private ArrayList<String> mDataSet;
     private Firebase mRef;
     static Context mContext;
-    private ArrayList<String> adapterData = new ArrayList<String>();
+    //private ArrayList<HistoryData> adapterData = new ArrayList<GetDBValue>();
+    List<HistoryData> data = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,6 +60,8 @@ public class HistoryActivity extends AppCompatActivity {
 
         fb_pic_data = getIntent().getStringExtra("fb_pic_data").toString();
         fb_pic_url = getIntent().getStringExtra("fb_pic_url").toString();
+
+
 
         recyclerView = (RecyclerView) findViewById(R.id.recycler_view);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
@@ -75,7 +80,7 @@ public class HistoryActivity extends AppCompatActivity {
 
         mRef = new Firebase("https://pinthai-84714.firebaseio.com/data/place/pin");
         Long tsLong = System.currentTimeMillis()/1000;
-        Long tsLong2 = (System.currentTimeMillis()/1000)-14400;
+        Long tsLong2 = (System.currentTimeMillis()/1000)-3600;
         String time_four = tsLong2.toString();
         mRef.orderByChild("current_date").startAt(time_four);
 
@@ -91,13 +96,14 @@ public class HistoryActivity extends AppCompatActivity {
                         double longitude = (double) issue.child("longitude").getValue();
                         String pintype = (String) issue.child("pin_type").getValue();
                         String date = (String)issue.child("current_date").getValue();
+                        String info = (String) issue.child("info").getValue();
 
-                        String pin_id = (String) issue.getKey();
-
+                        final String pin_key = (String) issue.getKey();
                         Geocoder geocoder = new Geocoder(mContext, Locale.getDefault());
                         Long tsLong2 = (System.currentTimeMillis()/1000)-14400;
                         int time_four = tsLong2.intValue();
                         int time_ori = Integer.valueOf(date);
+
 
                         if(time_ori > time_four) {
                             try {
@@ -108,10 +114,14 @@ public class HistoryActivity extends AppCompatActivity {
                                 long l = Long.parseLong(date);
                                 String date_time = getDate(l);
 
-                                adapterData.add("หมุด "+pintype+"\nสถานที่ : " + add + "\n" + "เพิ่มเมื่อ :" + date_time);
+                                HistoryData history = new HistoryData();
+                                history.pin_key = pin_key;
+                                history.pin_type = pintype;
+                                history.locate = add;
+                                history.date_time = date_time;
+                                data.add(history);
 
-                                mDataSet = new ArrayList<String>((adapterData));
-                                mAdapter = new RecyclerViewAdapter(this, mDataSet);
+                                mAdapter = new RecyclerViewAdapter(this, data);
                                 recyclerView.setAdapter(mAdapter);
                             } catch (IOException e) {
                                 // TODO Auto-generated catch block
@@ -127,14 +137,8 @@ public class HistoryActivity extends AppCompatActivity {
 
             }
         });
-        //String[] adapterData = new String[]{"Alabama\nTETS", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming"};
-       // adapterData[0] = "";
-      //  mDataSet = new ArrayList<String>((adapterData));
-       /// mAdapter = new RecyclerViewAdapter(this, mDataSet);
-       /// ((RecyclerViewAdapter) mAdapter).setMode(Attributes.Mode.Single);
-       // recyclerView.setAdapter(mAdapter);
 
-        // Adapter:
+
 
 
         /* Listeners */
@@ -159,7 +163,7 @@ public class HistoryActivity extends AppCompatActivity {
     };
     private String getDate(long time) {
         Date date = new Date(time*1000L); // *1000 is to convert seconds to milliseconds
-        SimpleDateFormat sdf = new SimpleDateFormat("hh:mm:ss ,EEE dd MMM yy "); // the format of your date
+        SimpleDateFormat sdf = new SimpleDateFormat("hh:mm:ss a"); // the format of your date
         sdf.setTimeZone(TimeZone.getTimeZone("GMT+7"));
 
         return sdf.format(date);
@@ -169,6 +173,7 @@ public class HistoryActivity extends AppCompatActivity {
         switch (menuItem.getItemId()) {
             case android.R.id.home:
                 onBackPressed();
+
                 return true;
             default:
                 return super.onOptionsItemSelected(menuItem);

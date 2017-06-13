@@ -20,11 +20,16 @@
 
     <item android:title="อื่นๆ">
         <menu>
-            <item
+            <!--item
                 android:id="@+id/nav_info"
                 android:icon="@drawable/ic_info"
-                android:title="การใช้งาน" />
+                android:title="การใช้งาน" /-->
+            <item
+                android:id="@+id/nav_logout"
+                android:icon="@drawable/ic_power_settings_new"
+                android:title="ออกจากระบบ" />
         </menu>
+
     </item>
 
 </menu>

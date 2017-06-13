@@ -237,7 +237,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                            // Toast.makeText(mContext, dbLocation, Toast.LENGTH_SHORT).show();
 
 
-                            FacebookProfile fb_profile = new FacebookProfile(fb_id, fb_email, fb_name, fb_pic_data, fb_pic_url);
+                            //FacebookProfile fb_profile = new FacebookProfile(fb_id, fb_email, fb_name, fb_pic_data, fb_pic_url);
                            // String date_time = DateFormat.getDateTimeInstance().format(new Date());
                              pin_latitude = mCenterLatLong.latitude;
                              pin_longitude = mCenterLatLong.longitude;
@@ -306,14 +306,14 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
         }
     }
-    private void setFirebaseDB(String fb_id,double pin_latitude,double pin_longitude,String pin_type,float vote_rating,int vote_amount){
+    private void setFirebaseDB(String fb_id,double pin_latitude,double pin_longitude,String pin_type,float vote_rating,int vote_amount,String info){
 
         Long tsLong = System.currentTimeMillis()/1000;
         String server_timestamp = tsLong.toString();
 
         String dbLocation = "data/place";
 
-        DBDetails details = new DBDetails(fb_id ,server_timestamp, pin_type,pin_latitude,pin_longitude,vote_rating,vote_amount);
+        DBDetails details = new DBDetails(fb_id ,server_timestamp, pin_type,pin_latitude,pin_longitude,vote_rating,vote_amount,info);
         DatabaseReference ref = FirebaseDatabase.getInstance().getReference(dbLocation);
         ref.child("pin").push().setValue(details);
         GeoFire geoFire = new GeoFire(ref);
@@ -324,22 +324,22 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     {
         super.onCreateContextMenu(menu, v, menuInfo);
         menu.setHeaderTitle("กรุณาเลือกประเภท");
-        menu.add(0, v.getId(), 0, "ด่านตรวจ");//groupId, itemId, order, title
+        menu.add(0, v.getId(), 0, "สิ่งกีดขวางควรหลีกเลี่ยง");//groupId, itemId, order, title
         menu.add(0, v.getId(), 0, "มีอุบัติเหตุ");
         menu.add(0, v.getId(), 0, "ขอความช่วยเหลือ");
     }
     public boolean onContextItemSelected(MenuItem item){
-        if(item.getTitle()=="ด่านตรวจ"){
-            Toast.makeText(getApplicationContext(),"เพิ่มหมุด 'ด่านตรวจ' แล้ว",Toast.LENGTH_LONG).show();
-            setFirebaseDB(fb_id,pin_latitude,pin_longitude,"checkpoint",(float) 0.001,0);
+        if(item.getTitle()=="สิ่งกีดขวางควรหลีกเลี่ยง"){
+            Toast.makeText(getApplicationContext(),"เพิ่มหมุด 'สิ่งกีดขวางควรหลีกเลี่ยง' แล้ว",Toast.LENGTH_LONG).show();
+            setFirebaseDB(fb_id,pin_latitude,pin_longitude,"สิ่งกีดขวางควรหลีกเลี่ยง",(float) 0.001,0,"ไม่มีข้อมูลเพิ่มเติม");
         }
         else if(item.getTitle()=="มีอุบัติเหตุ"){
             Toast.makeText(getApplicationContext(),"เพิ่มหมุด 'มีอุบัติเหตุ' แล้ว",Toast.LENGTH_LONG).show();
-            setFirebaseDB(fb_id,pin_latitude,pin_longitude,"accident",(float) 0.001,0);
+            setFirebaseDB(fb_id,pin_latitude,pin_longitude,"มีอุบัติเหตุ",(float) 0.001,0,"ไม่มีข้อมูลเพิ่มเติม");
         }
         else if(item.getTitle()=="ขอความช่วยเหลือ"){
             Toast.makeText(getApplicationContext(),"เพิ่มหมุด 'ขอความช่วยเหลือ' แล้ว",Toast.LENGTH_LONG).show();
-            setFirebaseDB(fb_id,pin_latitude,pin_longitude,"help", (float) 0.001,0);
+            setFirebaseDB(fb_id,pin_latitude,pin_longitude,"ขอความช่วยเหลือ", (float) 0.001,0,"ไม่มีข้อมูลเพิ่มเติม");
         }else{
             return false;
         }

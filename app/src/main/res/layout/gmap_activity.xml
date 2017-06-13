@@ -17,35 +17,24 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         />
-    <Button
-        android:text="ยืนยันตำแหน่งที่เลือก"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:id="@+id/select_map"
-        style="@android:style/Widget.Material.Button.Colored"
-        android:layout_marginBottom="30dp"
-        android:layout_marginRight="10dp"
-        android:layout_marginLeft="10dp" />
 
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_below="@+id/container_toolbar">
+        android:layout_height="match_parent">
 
         <LinearLayout
             android:id="@+id/locationMarker"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:layout_marginBottom="80dp"
+            android:orientation="vertical"
             android:gravity="center"
-            android:orientation="vertical" >
+            android:layout_marginBottom="60dp">
 
             <TextView
                 android:id="@+id/locationMarkertext"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:gravity="center"
                 android:minWidth="250dp"
                 android:paddingLeft="2dp"
@@ -60,12 +49,21 @@
                 android:id="@+id/imageMarker"
                 android:src="@drawable/ic_place"
                 android:layout_width="65dp"
-                android:layout_height="65dp"/>
+                android:layout_height="65dp" />
         </LinearLayout>
-
-
-
     </FrameLayout>
+
+    <Button
+        android:text="ยืนยันตำแหน่งที่เลือก"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:id="@+id/select_map"
+        android:layout_marginBottom="30dp"
+        android:layout_marginRight="10dp"
+        android:layout_marginLeft="10dp"
+        style="@android:style/Widget.Material.Button.Colored"
+        android:background="@color/colorPrimary" />
 
     <LinearLayout
         android:id="@+id/container_toolbar"
@@ -108,8 +106,6 @@
         </LinearLayout>
 
     </LinearLayout>
-
-
 
 
 </RelativeLayout>
